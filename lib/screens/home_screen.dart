@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../widgets/channel_card.dart';
@@ -110,8 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     List<String> channels = ['beIN SPORTS 3', 'beIN SPORTS 2', 'beIN SPORTS 1', 'beIN SPORTS 6', 'beIN SPORTS 5', 'beIN SPORTS 4'];
                     return ChannelCard(
                       channelName: channels[index],
-                      isVIP: index == 2, 
-                      isActive: index == 2,
+                      isVIP: index == 2, // beIN SPORTS 1 دەبێتە VIP
+                      isActive: index == 2, // beIN SPORTS 1 دەبێتە هەڵبژێردراو
                     );
                   },
                 ),
