@@ -20,8 +20,11 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
+    - name: Configure Web
+      # ئەمە کێشەکەت چارەسەر دەکات و فۆڵدەری وێب دروست دەکات
+      run: flutter create . --platforms web
+
     - name: Build Web App
-      # کۆماندەکەمان نوێ کردەوە و بەشە کۆنەکەمان لادا
       run: flutter build web --release --base-href "/ibrahim-tv/"
 
     - name: Deploy to GitHub Pages
