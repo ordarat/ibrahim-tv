@@ -16,12 +16,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToHome() async {
-    // بۆ ماوەی ٣ چرکە دەوەستێت
     await Future.delayed(const Duration(seconds: 3), () {});
-    
     if (!mounted) return;
-    
-    // دەچێتە شاشەی سەرەکی
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -41,18 +37,10 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 150,
               height: 150,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.tv,
-                  size: 100,
-                  color: Colors.orange,
-                );
-              },
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.tv, size: 100, color: Colors.orange),
             ),
             const SizedBox(height: 40),
-            const CircularProgressIndicator(
-              color: Colors.orange,
-            ),
+            const CircularProgressIndicator(color: Colors.orange),
           ],
         ),
       ),
