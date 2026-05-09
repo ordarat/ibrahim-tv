@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/channel_card.dart';
 import 'player_screen.dart';
 
@@ -15,11 +16,34 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _sliderCount = 0;
+  List<String> _favorites = []; // لیستی کەناڵە دڵخوازەکان
 
   @override
   void initState() {
     super.initState();
+    _loadFavorites();
     Future.delayed(const Duration(seconds: 4), _autoScroll);
+  }
+
+  // خوێندنەوەی دڵخوازەکان لە میمۆریدا
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _favorites = prefs.getStringList('favorite_channels') ?? [];
+    });
+  }
+
+  // زیادکردن یان لابردنی کەناڵێک لە دڵخوازەکان
+  Future<void> _toggleFavorite(String channelName) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_favorites.contains(channelName)) {
+        _favorites.remove(channelName);
+      } else {
+        _favorites.add(channelName);
+      }
+      prefs.setStringList('favorite_channels', _favorites);
+    });
   }
 
   void _autoScroll() {
@@ -34,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() { _pageController.dispose(); super.dispose(); }
 
-  // نەخشەیەک بۆ دروستکردنی شریتی ڕیکلامەکە
   Widget _buildAdBanner() {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('ads').doc('banner').snapshots(),
@@ -62,110 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // گەڕان
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 45,
-                        decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
-                        child: const TextField(decoration: InputDecoration(hintText: 'گەڕان بۆ کەناڵ...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10))),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), child: const Icon(Icons.tv, color: Colors.orange, size: 24)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // بەشی سڵایدەر
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('sliders').orderBy('created_at', descending: true).snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox();
-                    var sliders = snapshot.data!.docs;
-                    _sliderCount = sliders.length;
-
-                    return SizedBox(
-                      height: 160.0,
-                      child: PageView.builder(
-                        controller: _pageController,
-                        itemCount: sliders.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 5),
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                
-                // بەشی کاتیگۆرییەکان و کەناڵەکان بە داینامیکی
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('channels').orderBy('created_at', descending: true).snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
-
-                    // جیاکردنەوەی کەناڵەکان بەپێی کاتیگۆری
-                    Map<String, List<DocumentSnapshot>> groupedChannels = {};
-                    for (var doc in snapshot.data!.docs) {
-                      var data = doc.data() as Map<String, dynamic>;
-                      String category = data['category'] ?? 'گشتی';
-                      if (!groupedChannels.containsKey(category)) groupedChannels[category] = [];
-                      groupedChannels[category]!.add(doc);
-                    }
-
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: groupedChannels.keys.length,
-                      itemBuilder: (context, index) {
-                        String categoryName = groupedChannels.keys.elementAt(index);
-                        List<DocumentSnapshot> categoryChannels = groupedChannels[categoryName]!;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader(categoryName),
-                            const SizedBox(height: 15),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
-                              itemCount: categoryChannels.length,
-                              itemBuilder: (context, gridIndex) {
-                                var channelData = categoryChannels[gridIndex].data() as Map<String, dynamic>;
-                                return GestureDetector(
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: channelData['name'] ?? '', streamUrl: channelData['stream_url'] ?? ''))),
-                                  child: ChannelCard(channelName: channelData['name'] ?? '', logoUrl: channelData['logo_url'] ?? '', isVIP: channelData['is_vip'] ?? false),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 15),
-                            
-                            // دانانی شریتی ڕیکلامەکە تەنها لە دوای کاتیگۆری یەکەم!
-                            if (index == 0) _buildAdBanner(),
-                            if (index == 0) const SizedBox(height: 15),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
+        // گۆڕینی شاشەکان بەپێی ئەوەی سەرەتا هەڵبژێردراوە یان دڵخوازەکان
+        child: _selectedIndex == 0 ? _buildHomeContent() : _buildFavoritesContent(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF0A0F18),
@@ -176,8 +97,168 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'سەرەتا'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'دڵخواز'),
-          BottomNavigationBarItem(icon: Icon(Icons.tv), label: 'TV Mode'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'دڵخوازەکان'),
+        ],
+      ),
+    );
+  }
+
+  // ==================== شاشەی سەرەکی ====================
+  Widget _buildHomeContent() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 45,
+                    decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
+                    child: const TextField(decoration: InputDecoration(hintText: 'گەڕان بۆ کەناڵ...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10))),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), child: const Icon(Icons.tv, color: Colors.orange, size: 24)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('sliders').orderBy('created_at', descending: true).snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox();
+                var sliders = snapshot.data!.docs;
+                _sliderCount = sliders.length;
+
+                return SizedBox(
+                  height: 160.0,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: sliders.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('channels').orderBy('created_at', descending: true).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
+
+                Map<String, List<DocumentSnapshot>> groupedChannels = {};
+                for (var doc in snapshot.data!.docs) {
+                  var data = doc.data() as Map<String, dynamic>;
+                  String category = data['category'] ?? 'گشتی';
+                  if (!groupedChannels.containsKey(category)) groupedChannels[category] = [];
+                  groupedChannels[category]!.add(doc);
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: groupedChannels.keys.length,
+                  itemBuilder: (context, index) {
+                    String categoryName = groupedChannels.keys.elementAt(index);
+                    List<DocumentSnapshot> categoryChannels = groupedChannels[categoryName]!;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(categoryName),
+                        const SizedBox(height: 15),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                          itemCount: categoryChannels.length,
+                          itemBuilder: (context, gridIndex) {
+                            var channelData = categoryChannels[gridIndex].data() as Map<String, dynamic>;
+                            String cName = channelData['name'] ?? '';
+                            return GestureDetector(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: cName, streamUrl: channelData['stream_url'] ?? ''))),
+                              child: ChannelCard(
+                                channelName: cName, 
+                                logoUrl: channelData['logo_url'] ?? '', 
+                                isVIP: channelData['is_vip'] ?? false,
+                                isFavorite: _favorites.contains(cName), // دیاریکردنی ڕەنگی دڵەکە
+                                onFavoriteTap: () => _toggleFavorite(cName), // فەرمانی کلیک
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 15),
+                        if (index == 0) _buildAdBanner(),
+                        if (index == 0) const SizedBox(height: 15),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== شاشەی دڵخوازەکان ====================
+  Widget _buildFavoritesContent() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('کەناڵە دڵخوازەکانم', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
+          const SizedBox(height: 20),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('channels').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
+
+                // فلتەرکردنی کەناڵەکان تەنها بۆ ئەوانەی دڵخوازن
+                var favChannels = snapshot.data!.docs.where((doc) {
+                  var data = doc.data() as Map<String, dynamic>;
+                  return _favorites.contains(data['name']);
+                }).toList();
+
+                if (favChannels.isEmpty) {
+                  return const Center(child: Text('هیچ کەناڵێکت نەکردووە بە دڵخواز', style: TextStyle(color: Colors.grey, fontSize: 16)));
+                }
+
+                return GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                  itemCount: favChannels.length,
+                  itemBuilder: (context, index) {
+                    var channelData = favChannels[index].data() as Map<String, dynamic>;
+                    String cName = channelData['name'] ?? '';
+                    return GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: cName, streamUrl: channelData['stream_url'] ?? ''))),
+                      child: ChannelCard(
+                        channelName: cName, 
+                        logoUrl: channelData['logo_url'] ?? '', 
+                        isVIP: channelData['is_vip'] ?? false,
+                        isFavorite: true,
+                        onFavoriteTap: () => _toggleFavorite(cName),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
