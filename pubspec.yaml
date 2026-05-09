@@ -11,6 +11,10 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   carousel_slider: ^4.2.1
+  firebase_core: ^2.30.0
+  cloud_firestore: ^4.13.1
+  video_player: ^2.8.1
+  chewie: ^1.7.4
 
 dev_dependencies:
   flutter_test:
@@ -19,7 +23,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
-  # لێرەدا ڕێڕەوی وێنەکانمان ناساندووە بە ئەپەکە
   assets:
     - assets/logo.png
