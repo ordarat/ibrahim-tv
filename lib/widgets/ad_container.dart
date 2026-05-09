@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class AdContainer extends StatelessWidget {
@@ -14,7 +13,7 @@ class AdContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 70, // قەبارەی دیاریکراو و نەگۆڕ
+      height: 70, 
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
