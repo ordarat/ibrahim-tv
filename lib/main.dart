@@ -1,6 +1,5 @@
-
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,6 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Kurdish TV Web App',
       debugShowCheckedModeBanner: false,
+      // ئاراستەی ئەپەکە بۆ زمانی کوردی (ڕاست بۆ چەپ)
       builder: (context, child) {
         return Directionality(
           textDirection: TextDirection.rtl,
@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0D1321),
         primaryColor: Colors.orange,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(), // یەکەم شاشە شاشەی لۆدینگە
     );
   }
 }
