@@ -21,8 +21,8 @@ jobs:
       run: flutter pub get
 
     - name: Build Web App
-      # ئەم دێڕە کێشەی شاشە سپییەکە و لۆدینگی وێبەکە چارەسەر دەکات
-      run: flutter build web --web-renderer html --release --base-href "/ibrahim-tv/"
+      # کۆماندەکەمان نوێ کردەوە و بەشە کۆنەکەمان لادا
+      run: flutter build web --release --base-href "/ibrahim-tv/"
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
