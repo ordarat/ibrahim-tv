@@ -18,10 +18,7 @@ class ChannelCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1B4B),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: isActive ? Colors.yellow : Colors.blueAccent.withOpacity(0.3),
-          width: isActive ? 2 : 1,
-        ),
+        border: Border.all(color: isActive ? Colors.yellow : Colors.blueAccent.withOpacity(0.3), width: isActive ? 2 : 1),
       ),
       child: Stack(
         children: [
@@ -30,45 +27,18 @@ class ChannelCard extends StatelessWidget {
               width: double.infinity,
               height: double.infinity,
               margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF673AB7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  channelName,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFF673AB7), borderRadius: BorderRadius.circular(8)),
+              child: Center(child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12))),
             ),
           ),
-          const Positioned(
-            top: 12,
-            left: 12,
-            child: Icon(Icons.favorite, color: Colors.white24, size: 24),
-          ),
+          const Positioned(top: 12, left: 12, child: Icon(Icons.favorite, color: Colors.white24, size: 24)),
           if (isVIP)
             Positioned(
-              bottom: -1,
-              right: 15,
+              bottom: -1, right: 15,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: const BoxDecoration(
-                  color: Colors.yellow,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    topRight: Radius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'VIP',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                decoration: const BoxDecoration(color: Colors.yellow, borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8))),
+                child: const Text('VIP', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ),
         ],
