@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+// تێبینی بکە لێرەدا وشەی hide CarouselController مان زیادکردووە بۆ چارەسەری کێشەی یەکەم
+import 'package:flutter/material.dart' hide CarouselController;
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/channel_card.dart';
@@ -78,7 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: channelData['name'] ?? 'کەناڵ', streamUrl: channelData['stream_url'] ?? '')));
                           },
-                          child: ChannelCard(channelName: channelData['name'] ?? '', isVIP: channelData['is_vip'] ?? false),
+                          // لێرەدا چارەسەری کێشەی دووەممان کرد، logoUrl مان نارد
+                          child: ChannelCard(
+                            channelName: channelData['name'] ?? '', 
+                            logoUrl: channelData['logo_url'] ?? '', 
+                            isVIP: channelData['is_vip'] ?? false
+                          ),
                         );
                       },
                     );
