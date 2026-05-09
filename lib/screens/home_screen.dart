@@ -1,6 +1,4 @@
-// تێبینی بکە لێرەدا وشەی hide CarouselController مان زیادکردووە بۆ چارەسەری کێشەی یەکەم
-import 'package:flutter/material.dart' hide CarouselController;
-import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/channel_card.dart';
 import 'player_screen.dart';
@@ -37,22 +35,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                         ),
                         child: const TextField(
-                          decoration: InputDecoration(hintText: 'گەڕان بۆ کەناڵ...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                          decoration: InputDecoration(
+                            hintText: 'گەڕان بۆ کەناڵ...', 
+                            hintStyle: TextStyle(color: Colors.grey), 
+                            border: InputBorder.none, 
+                            prefixIcon: Icon(Icons.search, color: Colors.orange), 
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), child: const Icon(Icons.tv, color: Colors.orange, size: 24)),
+                    Container(
+                      padding: const EdgeInsets.all(8), 
+                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), 
+                      child: const Icon(Icons.tv, color: Colors.orange, size: 24)
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
                 
-                // سڵایدەر
-                CarouselSlider(
-                  options: CarouselOptions(height: 160.0, enlargeCenterPage: true, autoPlay: true, aspectRatio: 16 / 9, autoPlayCurve: Curves.fastOutSlowIn, enableInfiniteScroll: true, autoPlayAnimationDuration: const Duration(milliseconds: 800), viewportFraction: 1.0),
-                  items: [
-                    Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.blueAccent), color: const Color(0xFF1A2235)), child: const Center(child: Text('Kurdish Media Hub', style: TextStyle(color: Colors.white)))),
-                  ],
+                // وێنەی ڕیکلامی جێگیر (لەبری سڵایدەر کە کێشەی دروست کردبوو)
+                Container(
+                  height: 160.0,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15), 
+                    border: Border.all(color: Colors.blueAccent), 
+                    color: const Color(0xFF1A2235)
+                  ), 
+                  child: const Center(
+                    child: Text('Kurdish Media Hub', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))
+                  )
                 ),
                 const SizedBox(height: 20),
                 
@@ -63,15 +77,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('channels').orderBy('created_at', descending: true).snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Colors.orange));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
+                    }
 
                     var channels = snapshot.data!.docs;
 
                     return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3, 
+                        crossAxisSpacing: 12, 
+                        mainAxisSpacing: 12, 
+                        childAspectRatio: 0.85
+                      ),
                       itemCount: channels.length,
                       itemBuilder: (context, index) {
                         var channelData = channels[index].data() as Map<String, dynamic>;
@@ -79,7 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: channelData['name'] ?? 'کەناڵ', streamUrl: channelData['stream_url'] ?? '')));
                           },
-                          // لێرەدا چارەسەری کێشەی دووەممان کرد، logoUrl مان نارد
                           child: ChannelCard(
                             channelName: channelData['name'] ?? '', 
                             logoUrl: channelData['logo_url'] ?? '', 
@@ -116,7 +138,14 @@ class _HomeScreenState extends State<HomeScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.orange)),
-        OutlinedButton(onPressed: () {}, style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('زیاتر ببینە >', style: TextStyle(color: Colors.blueAccent)))
+        OutlinedButton(
+          onPressed: () {}, 
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)), 
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+          ), 
+          child: const Text('زیاتر ببینە >', style: TextStyle(color: Colors.blueAccent))
+        )
       ],
     );
   }
