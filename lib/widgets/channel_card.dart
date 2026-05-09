@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class ChannelCard extends StatelessWidget {
   final String channelName;
+  final String logoUrl; // ئەمەمان زیاد کرد بۆ وەرگرتنی لینکی لۆگۆکە
   final bool isVIP;
   final bool isActive;
 
   const ChannelCard({
     super.key,
     required this.channelName,
+    required this.logoUrl, // مەرجە بدرێت بە کارتەکە
     this.isVIP = false,
     this.isActive = false,
   });
@@ -27,8 +29,21 @@ class ChannelCard extends StatelessWidget {
               width: double.infinity,
               height: double.infinity,
               margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFF673AB7), borderRadius: BorderRadius.circular(8)),
-              child: Center(child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12))),
+              decoration: BoxDecoration(
+                color: const Color(0xFF673AB7), // ڕەنگی باکگراوند ئەگەر لۆگۆ نەبوو
+                borderRadius: BorderRadius.circular(8),
+                // هێنانی وێنەکە لە ڕێگەی لینکەوە
+                image: logoUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(logoUrl),
+                        fit: BoxFit.cover, // وا دەکات وێنەکە بە جوانی پڕ بە بۆکسەکە بێت
+                      )
+                    : null,
+              ),
+              // ئەگەر لینکی لۆگۆ نەبوو، با تەنها ناوی کەناڵەکە بنووسێت
+              child: logoUrl.isEmpty
+                  ? Center(child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)))
+                  : null,
             ),
           ),
           const Positioned(top: 12, left: 12, child: Icon(Icons.favorite, color: Colors.white24, size: 24)),
