@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 
 class ChannelCard extends StatelessWidget {
   final String channelName;
-  final String logoUrl; // ئەمەمان زیاد کرد بۆ وەرگرتنی لینکی لۆگۆکە
+  final String logoUrl;
   final bool isVIP;
   final bool isActive;
+  final bool isFavorite; // دیاریکردنی ئەوەی ئایا دڵخوازە
+  final VoidCallback? onFavoriteTap; // فەرمانی کاتی کلیک کردن لەسەر دڵەکە
 
   const ChannelCard({
     super.key,
     required this.channelName,
-    required this.logoUrl, // مەرجە بدرێت بە کارتەکە
+    required this.logoUrl,
     this.isVIP = false,
     this.isActive = false,
+    this.isFavorite = false,
+    this.onFavoriteTap,
   });
 
   @override
@@ -30,23 +34,25 @@ class ChannelCard extends StatelessWidget {
               height: double.infinity,
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF673AB7), // ڕەنگی باکگراوند ئەگەر لۆگۆ نەبوو
+                color: const Color(0xFF673AB7),
                 borderRadius: BorderRadius.circular(8),
-                // هێنانی وێنەکە لە ڕێگەی لینکەوە
-                image: logoUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(logoUrl),
-                        fit: BoxFit.cover, // وا دەکات وێنەکە بە جوانی پڕ بە بۆکسەکە بێت
-                      )
-                    : null,
+                image: logoUrl.isNotEmpty ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) : null,
               ),
-              // ئەگەر لینکی لۆگۆ نەبوو، با تەنها ناوی کەناڵەکە بنووسێت
               child: logoUrl.isEmpty
                   ? Center(child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)))
                   : null,
             ),
           ),
-          const Positioned(top: 12, left: 12, child: Icon(Icons.favorite, color: Colors.white24, size: 24)),
+          
+          // دوگمەی دڵخواز
+          Positioned(
+            top: 0, left: 0, 
+            child: IconButton(
+              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white70, size: 24),
+              onPressed: onFavoriteTap,
+            )
+          ),
+
           if (isVIP)
             Positioned(
               bottom: -1, right: 15,
