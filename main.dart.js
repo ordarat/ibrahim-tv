@@ -67826,7 +67826,7 @@ s=this.b
 return s*(B.f.je(a-1,this.a)+1)-(s-this.d)}}
 A.ahX.prototype={}
 A.ahY.prototype={
-La(a){var s=Math.max(0,a.w-24)/3,r=s/0.85
+La(a){var s=Math.max(0,a.w-24)/3,r=s/0.7
 return new A.ai0(3,r+12,s+12,r,s,A.xc(a.x))}}
 A.vf.prototype={
 k(a){return"crossAxisOffset="+A.j(this.w)+"; "+this.a34(0)}}
