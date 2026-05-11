@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/splash_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // بەستنەوەی فایەربەیس بە شێوەی دەستی
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyBHVhQFFOyup2eBTAKDMWZFB5In07wMXOg",
@@ -14,7 +13,8 @@ void main() async {
       storageBucket: "ibrahimtv-c0d5d.firebasestorage.app",
       messagingSenderId: "658751407366",
       appId: "1:658751407366:web:5b34e69a4fd4de78330a87",
-      measurementId: "G-JMRKFQHLQP",
+      // ئەم دێڕە کێشەی شاشە سپییەکە چارەسەر دەکات
+      databaseURL: "https://ibrahimtv-c0d5d-default-rtdb.firebaseio.com", 
     ),
   );
 
@@ -27,20 +27,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kurdish TV Web App',
+      title: 'Ibrahim TV',
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
-      },
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D1321),
-        primaryColor: Colors.orange,
+        scaffoldBackgroundColor: const Color(0xFF0A0F18),
       ),
-      home: const SplashScreen(),
+      builder: (context, child) {
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
+      },
+      home: const HomeScreen(),
     );
   }
 }
