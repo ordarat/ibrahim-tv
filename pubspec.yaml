@@ -16,6 +16,7 @@ dependencies:
   video_player: any
   chewie: any
   shared_preferences: any
+  url_launcher: any
 
 dev_dependencies:
   flutter_test:
