@@ -16,7 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _sliderCount = 0;
-  List<String> _favorites = []; // لیستی کەناڵە دڵخوازەکان
+  List<String> _favorites = [];
+  String _searchQuery = ''; // گۆڕاوی نوێ بۆ گەڕان
 
   @override
   void initState() {
@@ -25,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Future.delayed(const Duration(seconds: 4), _autoScroll);
   }
 
-  // خوێندنەوەی دڵخوازەکان لە میمۆریدا
   Future<void> _loadFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -33,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // زیادکردن یان لابردنی کەناڵێک لە دڵخوازەکان
   Future<void> _toggleFavorite(String channelName) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -85,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        // گۆڕینی شاشەکان بەپێی ئەوەی سەرەتا هەڵبژێردراوە یان دڵخوازەکان
         child: _selectedIndex == 0 ? _buildHomeContent() : _buildFavoritesContent(),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -117,7 +115,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     height: 45,
                     decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
-                    child: const TextField(decoration: InputDecoration(hintText: 'گەڕان بۆ کەناڵ...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10))),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase(); // نوێکردنەوەی وشەی گەڕان
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'گەڕان بۆ کەناڵ...', 
+                        hintStyle: TextStyle(color: Colors.grey), 
+                        border: InputBorder.none, 
+                        prefixIcon: Icon(Icons.search, color: Colors.orange), 
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+                      )
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -126,29 +137,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('sliders').orderBy('created_at', descending: true).snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox();
-                var sliders = snapshot.data!.docs;
-                _sliderCount = sliders.length;
+            // ئەگەر خەریکی گەڕان بوو، سڵایدەرەکە مەهێنە بۆ ئەوەی کەناڵەکان باشتر ببینرێن
+            if (_searchQuery.isEmpty) ...[
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('sliders').orderBy('created_at', descending: true).snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox();
+                  var sliders = snapshot.data!.docs;
+                  _sliderCount = sliders.length;
 
-                return SizedBox(
-                  height: 160.0,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: sliders.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 5),
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
+                  return SizedBox(
+                    height: 160.0,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: sliders.length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
             
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('channels').orderBy('created_at', descending: true).snapshots(),
@@ -156,8 +170,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
 
+                // فلتەرکردنی کەناڵەکان بەپێی وشەی گەڕان
+                var allChannels = snapshot.data!.docs;
+                var filteredChannels = allChannels.where((doc) {
+                  var data = doc.data() as Map<String, dynamic>;
+                  String name = (data['name'] ?? '').toLowerCase();
+                  return name.contains(_searchQuery);
+                }).toList();
+
+                if (filteredChannels.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 40.0),
+                      child: Text('هیچ کەناڵێک نەدۆزرایەوە', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                    ),
+                  );
+                }
+
                 Map<String, List<DocumentSnapshot>> groupedChannels = {};
-                for (var doc in snapshot.data!.docs) {
+                for (var doc in filteredChannels) {
                   var data = doc.data() as Map<String, dynamic>;
                   String category = data['category'] ?? 'گشتی';
                   if (!groupedChannels.containsKey(category)) groupedChannels[category] = [];
@@ -191,15 +222,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 channelName: cName, 
                                 logoUrl: channelData['logo_url'] ?? '', 
                                 isVIP: channelData['is_vip'] ?? false,
-                                isFavorite: _favorites.contains(cName), // دیاریکردنی ڕەنگی دڵەکە
-                                onFavoriteTap: () => _toggleFavorite(cName), // فەرمانی کلیک
+                                isFavorite: _favorites.contains(cName),
+                                onFavoriteTap: () => _toggleFavorite(cName),
                               ),
                             );
                           },
                         ),
                         const SizedBox(height: 15),
-                        if (index == 0) _buildAdBanner(),
-                        if (index == 0) const SizedBox(height: 15),
+                        // شریتی ڕیکلام تەنها کاتێک گەڕان ناکرێت و لەژێر بەشی یەکەم پیشان بدە
+                        if (index == 0 && _searchQuery.isEmpty) _buildAdBanner(),
+                        if (index == 0 && _searchQuery.isEmpty) const SizedBox(height: 15),
                       ],
                     );
                   },
@@ -221,6 +253,28 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Text('کەناڵە دڵخوازەکانم', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
           const SizedBox(height: 20),
+          
+          // گەڕان لەناو دڵخوازەکانیشدا
+          Container(
+            height: 45,
+            decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: 'گەڕان لە دڵخوازەکان...', 
+                hintStyle: TextStyle(color: Colors.grey), 
+                border: InputBorder.none, 
+                prefixIcon: Icon(Icons.search, color: Colors.orange), 
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+              )
+            ),
+          ),
+          const SizedBox(height: 20),
+
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('channels').snapshots(),
@@ -228,14 +282,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
 
-                // فلتەرکردنی کەناڵەکان تەنها بۆ ئەوانەی دڵخوازن
                 var favChannels = snapshot.data!.docs.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
-                  return _favorites.contains(data['name']);
+                  bool isFav = _favorites.contains(data['name']);
+                  bool matchesSearch = (data['name'] ?? '').toLowerCase().contains(_searchQuery);
+                  return isFav && matchesSearch;
                 }).toList();
 
                 if (favChannels.isEmpty) {
-                  return const Center(child: Text('هیچ کەناڵێکت نەکردووە بە دڵخواز', style: TextStyle(color: Colors.grey, fontSize: 16)));
+                  return Center(
+                    child: Text(
+                      _searchQuery.isEmpty ? 'هیچ کەناڵێکت نەکردووە بە دڵخواز' : 'هیچ کەناڵێک نەدۆزرایەوە', 
+                      style: const TextStyle(color: Colors.grey, fontSize: 16)
+                    )
+                  );
                 }
 
                 return GridView.builder(
