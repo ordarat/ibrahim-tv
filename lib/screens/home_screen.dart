@@ -16,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _sliderCount = 0;
+  int _currentSliderIndex = 0; // گۆڕاوی نوێ بۆ زانینی شوێنی سڵایدەرەکە
   List<String> _favorites = [];
   String _searchQuery = '';
 
@@ -124,18 +125,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
-                // لێرەدا ئایکۆنەکەمان گۆڕی بۆ لۆگۆی ئەپەکە لە فایلی assets
                 Container(
                   padding: const EdgeInsets.all(2), 
                   decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), 
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/logo.png', 
+                      'assets/assets/logo.png', 
                       width: 32, 
                       height: 32, 
                       fit: BoxFit.cover,
-                      // ئەگەر وێنەکە کێشەی هەبوو، ئایکۆنەکە پیشان دەداتەوە
                       errorBuilder: (context, error, stackTrace) => const Icon(Icons.tv, color: Colors.orange, size: 28),
                     ),
                   )
@@ -152,18 +150,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   var sliders = snapshot.data!.docs;
                   _sliderCount = sliders.length;
 
-                  return SizedBox(
-                    height: 160.0,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: sliders.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
-                        );
-                      },
-                    ),
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 160.0,
+                        child: PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) => setState(() => _currentSliderIndex = index), // نوێکردنەوەی خاڵەکان
+                          itemCount: sliders.length,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 5),
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(sliders[index]['image_url']), fit: BoxFit.cover)),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // خاڵەکانی ژێر سڵایدەرەکە (Dots Indicator)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(sliders.length, (index) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 8,
+                            width: _currentSliderIndex == index ? 24 : 8, // خاڵی ئەکتیڤ درێژتر دەبێت
+                            decoration: BoxDecoration(
+                              color: _currentSliderIndex == index ? Colors.orange : Colors.grey.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -201,7 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     String categoryName = groupedChannels.keys.elementAt(index);
                     List<DocumentSnapshot> categoryChannels = groupedChannels[categoryName]!;
 
-                    // لێرەدا دیاری دەکەین کە ئایا لە ٦ کەناڵ (٢ ڕیز) زیاتر هەیە؟
                     bool hasMore = categoryChannels.length > 6;
                     var displayChannels = hasMore && _searchQuery.isEmpty ? categoryChannels.sublist(0, 6) : categoryChannels;
 
@@ -209,7 +228,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildSectionHeader(categoryName, hasMore && _searchQuery.isEmpty, () {
-                          // ناردنی تەواوی کەناڵەکانی ئەم بەشە بۆ شاشە نوێیەکە
                           var channelMaps = categoryChannels.map((e) => e.data() as Map<String, dynamic>).toList();
                           Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryScreen(categoryName: categoryName, channels: channelMaps)));
                         }),
@@ -217,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85), // ڕێکخستنی قەبارەی کارتەکان
                           itemCount: displayChannels.length,
                           itemBuilder: (context, gridIndex) {
                             var channelData = displayChannels[gridIndex].data() as Map<String, dynamic>;
@@ -300,7 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // نوێکردنەوەی بەشی سەرەوەی کاتیگۆرییەکان بۆ ئەوەی دوگمەی (زیاتر ببینە) کار بکات
   Widget _buildSectionHeader(String title, bool showSeeMore, VoidCallback? onSeeMore) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
