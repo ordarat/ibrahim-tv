@@ -13,8 +13,8 @@ void main() async {
       storageBucket: "ibrahimtv-c0d5d.firebasestorage.app",
       messagingSenderId: "658751407366",
       appId: "1:658751407366:web:5b34e69a4fd4de78330a87",
-      // ئەم دێڕە کێشەی شاشە سپییەکە چارەسەر دەکات
-      databaseURL: "https://ibrahimtv-c0d5d-default-rtdb.firebaseio.com", 
+      // لێرەدا لینکە تایبەتەکەی داتابەیسەکەی تۆمان داناوە
+      databaseURL: "https://ibrahimtv-c0d5d-default-rtdb.europe-west1.firebasedatabase.app", 
     ),
   );
 
