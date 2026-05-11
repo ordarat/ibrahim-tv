@@ -16,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _sliderCount = 0;
-  int _currentSliderIndex = 0; // گۆڕاوی نوێ بۆ زانینی شوێنی سڵایدەرەکە
+  int _currentSliderIndex = 0; 
   List<String> _favorites = [];
   String _searchQuery = '';
 
@@ -102,7 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== شاشەی سەرەکی ====================
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       child: Padding(
@@ -156,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 160.0,
                         child: PageView.builder(
                           controller: _pageController,
-                          onPageChanged: (index) => setState(() => _currentSliderIndex = index), // نوێکردنەوەی خاڵەکان
+                          onPageChanged: (index) => setState(() => _currentSliderIndex = index),
                           itemCount: sliders.length,
                           itemBuilder: (context, index) {
                             return Container(
@@ -167,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // خاڵەکانی ژێر سڵایدەرەکە (Dots Indicator)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(sliders.length, (index) {
@@ -175,9 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             duration: const Duration(milliseconds: 300),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
                             height: 8,
-                            width: _currentSliderIndex == index ? 24 : 8, // خاڵی ئەکتیڤ درێژتر دەبێت
+                            width: _currentSliderIndex == index ? 24 : 8,
                             decoration: BoxDecoration(
-                              color: _currentSliderIndex == index ? Colors.orange : Colors.grey.withOpacity(0.5),
+                              // لێرەدا هەموو خاڵەکانمان کرد بە پرتەقاڵی، بەڵام ئەوانەی ئەکتیڤ نین کەمێک کاڵترن
+                              color: _currentSliderIndex == index ? Colors.orange : Colors.orange.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           );
@@ -235,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85), // ڕێکخستنی قەبارەی کارتەکان
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
                           itemCount: displayChannels.length,
                           itemBuilder: (context, gridIndex) {
                             var channelData = displayChannels[gridIndex].data() as Map<String, dynamic>;
@@ -263,7 +262,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== شاشەی دڵخوازەکان ====================
   Widget _buildFavoritesContent() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -334,7 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ==================== شاشەی نوێ بۆ بینینی هەموو کەناڵەکانی یەک کاتیگۆری ====================
 class CategoryScreen extends StatefulWidget {
   final String categoryName;
   final List<Map<String, dynamic>> channels;
