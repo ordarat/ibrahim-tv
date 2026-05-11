@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
@@ -13,17 +14,19 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-// لێرەدا WidgetsBindingObserver بەکاردەهێنین بۆ ئەوەی بزانین کەی ئەپەکە دادەخرێت
 class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   late VideoPlayerController _videoPlayerController;
   ChewieController? _chewieController;
-  bool _hasIncremented = false; // بۆ دڵنیابوون لەوەی تەنها یەکجار زیاد دەبێت
+  late String _userSessionId; // کۆدە تایبەتەکەی ئەم ئامێرە (لەبری ئایپی)
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // چاودێری داخستنی ئەپەکە دەکات
-    _incrementViewers(); // هەر کە کرایەوە بینەرێک زیاد دەکات
+    // دروستکردنی کۆدێکی تایبەت بەم سەردانیکەرە لەم کاتەدا
+    _userSessionId = '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
+    
+    WidgetsBinding.instance.addObserver(this);
+    _addViewer(); // هەر کە کرایەوە کۆدەکەی خۆی دەنێرێتە فایەربەیس
     _initializePlayer();
   }
 
@@ -34,7 +37,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController,
       autoPlay: true,
-      isLive: true, // شێوازی لایڤ چالاک دەکات
+      isLive: true,
       aspectRatio: _videoPlayerController.value.aspectRatio > 0 
           ? _videoPlayerController.value.aspectRatio 
           : 16 / 9,
@@ -45,49 +48,42 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     setState(() {});
   }
 
-  // فەنکشنی زیادکردنی بینەر لە فایەربەیس
-  Future<void> _incrementViewers() async {
-    if (_hasIncremented) return;
-    _hasIncremented = true;
-    
-    // لەناو کۆلێکشنێکی نوێ بە ناوی channel_stats ژمارەکە هەڵدەگرین
-    await FirebaseFirestore.instance.collection('channel_stats').doc(widget.channelName).set({
-      'viewers': FieldValue.increment(1)
-    }, SetOptions(merge: true));
+  // تۆمارکردنی ئەم ئامێرە لەناو لیستی بینەرە ڕاستەوخۆکاندا
+  Future<void> _addViewer() async {
+    await FirebaseFirestore.instance
+        .collection('channel_stats')
+        .doc(widget.channelName)
+        .collection('live_viewers')
+        .doc(_userSessionId)
+        .set({'joined_at': FieldValue.serverTimestamp()});
   }
 
-  // فەنکشنی کەمکردنەوەی بینەر
-  Future<void> _decrementViewers() async {
-    if (!_hasIncremented) return;
-    _hasIncremented = false;
-    
-    // سەرەتا دڵنیا دەبینەوە کە ژمارەکە لە سفڕ کەمتر نەبێتەوە
-    var doc = await FirebaseFirestore.instance.collection('channel_stats').doc(widget.channelName).get();
-    if (doc.exists) {
-      int current = doc.data()?['viewers'] ?? 0;
-      if (current > 0) {
-        await FirebaseFirestore.instance.collection('channel_stats').doc(widget.channelName).set({
-          'viewers': FieldValue.increment(-1)
-        }, SetOptions(merge: true));
-      }
-    }
+  // سڕینەوەی ئەم ئامێرە لە لیستی بینەرەکان کاتێک دەچێتە دەرەوە
+  Future<void> _removeViewer() async {
+    await FirebaseFirestore.instance
+        .collection('channel_stats')
+        .doc(widget.channelName)
+        .collection('live_viewers')
+        .doc(_userSessionId)
+        .delete();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // ئەگەر ئەپەکە خرایە باکگراوند یان داخرا، بینەرەکە کەم بکەرەوە
+    // ئەگەر ئەپەکەی خستە خوارەوە (Background) یان دایخست
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      _decrementViewers();
-    } else if (state == AppLifecycleState.resumed) {
-      // ئەگەر گەڕایەوە ناو ئەپەکە، دووبارە زیادی بکەرەوە
-      _incrementViewers();
+      _removeViewer();
+    } 
+    // ئەگەر گەڕایەوە ناو ئەپەکە و ڤیدیۆکە
+    else if (state == AppLifecycleState.resumed) {
+      _addViewer();
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _decrementViewers(); // کاتێک دەگەڕێتەوە دواوە (Back)، بینەرەکە کەم دەکاتەوە
+    _removeViewer(); // کاتێک دوگمەی Back دادەگرێت، ڕاستەوخۆ خۆی دەسڕێتەوە
     _videoPlayerController.dispose();
     _chewieController?.dispose();
     super.dispose();
@@ -100,36 +96,38 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       body: SafeArea(
         child: Stack(
           children: [
-            // ڤیدیۆ پلەیەرەکە لە خوارەوە
             Center(
               child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
                   ? Chewie(controller: _chewieController!)
                   : const CircularProgressIndicator(color: Colors.orange),
             ),
             
-            // دوگمەی گەڕانەوە (لە لای ڕاست)
             Positioned(
               top: 20,
               right: 20,
               child: Container(
-                decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 22),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(context), // لێرەدا دەگەڕێتەوە دواوە و dispose کار دەکات
                 ),
               ),
             ),
 
-            // شریتی لایڤ و ژمارەی بینەران (لە لای چەپ)
             Positioned(
               top: 20,
               left: 20,
-              child: StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('channel_stats').doc(widget.channelName).snapshots(),
+              child: StreamBuilder<QuerySnapshot>(
+                // لێرەدا بە ڕاستەوخۆیی (Stream) گوێ لە ژمارەی فایلەکانی ناو live_viewers دەگرێت
+                stream: FirebaseFirestore.instance
+                    .collection('channel_stats')
+                    .doc(widget.channelName)
+                    .collection('live_viewers')
+                    .snapshots(),
                 builder: (context, snapshot) {
                   int viewers = 0;
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    viewers = (snapshot.data!.data() as Map<String, dynamic>)['viewers'] ?? 0;
+                  if (snapshot.hasData) {
+                    viewers = snapshot.data!.docs.length; // ژمارەی بینەرەکان = کۆی ئەو ئامێرانەی ئێستا سەیر دەکەن
                   }
                   
                   return Container(
@@ -142,7 +140,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // خاڵی سووری لایڤ
                         Container(
                           width: 10, height: 10,
                           decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
