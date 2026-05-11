@@ -12,9 +12,10 @@ dependencies:
   cupertino_icons: any
   firebase_core: any
   cloud_firestore: any
+  firebase_database: any
   video_player: any
   chewie: any
-  shared_preferences: any # ئەمەمان زیاد کرد بۆ پاشەکەوتکردنی دڵخوازەکان
+  shared_preferences: any
 
 dev_dependencies:
   flutter_test:
@@ -24,4 +25,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/logo.png
+    - assets/
