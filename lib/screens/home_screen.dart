@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController();
   int _sliderCount = 0;
   List<String> _favorites = [];
-  String _searchQuery = ''; // گۆڕاوی نوێ بۆ گەڕان
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -116,28 +116,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 45,
                     decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
                     child: TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value.toLowerCase(); // نوێکردنەوەی وشەی گەڕان
-                        });
-                      },
+                      onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
                       decoration: const InputDecoration(
-                        hintText: 'گەڕان بۆ کەناڵ...', 
-                        hintStyle: TextStyle(color: Colors.grey), 
-                        border: InputBorder.none, 
-                        prefixIcon: Icon(Icons.search, color: Colors.orange), 
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+                        hintText: 'گەڕان بۆ کەناڵ...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
                       )
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), child: const Icon(Icons.tv, color: Colors.orange, size: 24)),
+                
+                // لێرەدا ئایکۆنەکەمان گۆڕی بۆ لۆگۆی ئەپەکە لە فایلی assets
+                Container(
+                  padding: const EdgeInsets.all(2), 
+                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), 
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/logo.png', 
+                      width: 32, 
+                      height: 32, 
+                      fit: BoxFit.cover,
+                      // ئەگەر وێنەکە کێشەی هەبوو، ئایکۆنەکە پیشان دەداتەوە
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.tv, color: Colors.orange, size: 28),
+                    ),
+                  )
+                ),
               ],
             ),
             const SizedBox(height: 20),
             
-            // ئەگەر خەریکی گەڕان بوو، سڵایدەرەکە مەهێنە بۆ ئەوەی کەناڵەکان باشتر ببینرێن
             if (_searchQuery.isEmpty) ...[
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('sliders').orderBy('created_at', descending: true).snapshots(),
@@ -170,7 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('هیچ کەناڵێک بوونی نییە', style: TextStyle(color: Colors.grey)));
 
-                // فلتەرکردنی کەناڵەکان بەپێی وشەی گەڕان
                 var allChannels = snapshot.data!.docs;
                 var filteredChannels = allChannels.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
@@ -178,14 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return name.contains(_searchQuery);
                 }).toList();
 
-                if (filteredChannels.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 40.0),
-                      child: Text('هیچ کەناڵێک نەدۆزرایەوە', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                    ),
-                  );
-                }
+                if (filteredChannels.isEmpty) return const Center(child: Padding(padding: EdgeInsets.only(top: 40.0), child: Text('هیچ کەناڵێک نەدۆزرایەوە', style: TextStyle(color: Colors.grey, fontSize: 16))));
 
                 Map<String, List<DocumentSnapshot>> groupedChannels = {};
                 for (var doc in filteredChannels) {
@@ -203,33 +201,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     String categoryName = groupedChannels.keys.elementAt(index);
                     List<DocumentSnapshot> categoryChannels = groupedChannels[categoryName]!;
 
+                    // لێرەدا دیاری دەکەین کە ئایا لە ٦ کەناڵ (٢ ڕیز) زیاتر هەیە؟
+                    bool hasMore = categoryChannels.length > 6;
+                    var displayChannels = hasMore && _searchQuery.isEmpty ? categoryChannels.sublist(0, 6) : categoryChannels;
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSectionHeader(categoryName),
+                        _buildSectionHeader(categoryName, hasMore && _searchQuery.isEmpty, () {
+                          // ناردنی تەواوی کەناڵەکانی ئەم بەشە بۆ شاشە نوێیەکە
+                          var channelMaps = categoryChannels.map((e) => e.data() as Map<String, dynamic>).toList();
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryScreen(categoryName: categoryName, channels: channelMaps)));
+                        }),
                         const SizedBox(height: 15),
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
-                          itemCount: categoryChannels.length,
+                          itemCount: displayChannels.length,
                           itemBuilder: (context, gridIndex) {
-                            var channelData = categoryChannels[gridIndex].data() as Map<String, dynamic>;
+                            var channelData = displayChannels[gridIndex].data() as Map<String, dynamic>;
                             String cName = channelData['name'] ?? '';
                             return GestureDetector(
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: cName, streamUrl: channelData['stream_url'] ?? ''))),
                               child: ChannelCard(
-                                channelName: cName, 
-                                logoUrl: channelData['logo_url'] ?? '', 
-                                isVIP: channelData['is_vip'] ?? false,
-                                isFavorite: _favorites.contains(cName),
-                                onFavoriteTap: () => _toggleFavorite(cName),
+                                channelName: cName, logoUrl: channelData['logo_url'] ?? '', isVIP: channelData['is_vip'] ?? false, isFavorite: _favorites.contains(cName), onFavoriteTap: () => _toggleFavorite(cName),
                               ),
                             );
                           },
                         ),
                         const SizedBox(height: 15),
-                        // شریتی ڕیکلام تەنها کاتێک گەڕان ناکرێت و لەژێر بەشی یەکەم پیشان بدە
                         if (index == 0 && _searchQuery.isEmpty) _buildAdBanner(),
                         if (index == 0 && _searchQuery.isEmpty) const SizedBox(height: 15),
                       ],
@@ -253,24 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Text('کەناڵە دڵخوازەکانم', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
           const SizedBox(height: 20),
-          
-          // گەڕان لەناو دڵخوازەکانیشدا
           Container(
             height: 45,
             decoration: BoxDecoration(color: const Color(0xFF1A2235), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.blueAccent.withOpacity(0.3))),
             child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'گەڕان لە دڵخوازەکان...', 
-                hintStyle: TextStyle(color: Colors.grey), 
-                border: InputBorder.none, 
-                prefixIcon: Icon(Icons.search, color: Colors.orange), 
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)
-              )
+              onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+              decoration: const InputDecoration(hintText: 'گەڕان لە دڵخوازەکان...', hintStyle: TextStyle(color: Colors.grey), border: InputBorder.none, prefixIcon: Icon(Icons.search, color: Colors.orange), contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10))
             ),
           ),
           const SizedBox(height: 20),
@@ -289,14 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return isFav && matchesSearch;
                 }).toList();
 
-                if (favChannels.isEmpty) {
-                  return Center(
-                    child: Text(
-                      _searchQuery.isEmpty ? 'هیچ کەناڵێکت نەکردووە بە دڵخواز' : 'هیچ کەناڵێک نەدۆزرایەوە', 
-                      style: const TextStyle(color: Colors.grey, fontSize: 16)
-                    )
-                  );
-                }
+                if (favChannels.isEmpty) return Center(child: Text(_searchQuery.isEmpty ? 'هیچ کەناڵێکت نەکردووە بە دڵخواز' : 'هیچ کەناڵێک نەدۆزرایەوە', style: const TextStyle(color: Colors.grey, fontSize: 16)));
 
                 return GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
@@ -306,13 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     String cName = channelData['name'] ?? '';
                     return GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: cName, streamUrl: channelData['stream_url'] ?? ''))),
-                      child: ChannelCard(
-                        channelName: cName, 
-                        logoUrl: channelData['logo_url'] ?? '', 
-                        isVIP: channelData['is_vip'] ?? false,
-                        isFavorite: true,
-                        onFavoriteTap: () => _toggleFavorite(cName),
-                      ),
+                      child: ChannelCard(channelName: cName, logoUrl: channelData['logo_url'] ?? '', isVIP: channelData['is_vip'] ?? false, isFavorite: true, onFavoriteTap: () => _toggleFavorite(cName)),
                     );
                   },
                 );
@@ -324,13 +300,99 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  // نوێکردنەوەی بەشی سەرەوەی کاتیگۆرییەکان بۆ ئەوەی دوگمەی (زیاتر ببینە) کار بکات
+  Widget _buildSectionHeader(String title, bool showSeeMore, VoidCallback? onSeeMore) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.orange)),
-        OutlinedButton(onPressed: () {}, style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('زیاتر ببینە >', style: TextStyle(color: Colors.blueAccent)))
+        if (showSeeMore)
+          OutlinedButton(
+            onPressed: onSeeMore, 
+            style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), 
+            child: const Text('زیاتر ببینە >', style: TextStyle(color: Colors.blueAccent))
+          )
       ],
+    );
+  }
+}
+
+// ==================== شاشەی نوێ بۆ بینینی هەموو کەناڵەکانی یەک کاتیگۆری ====================
+class CategoryScreen extends StatefulWidget {
+  final String categoryName;
+  final List<Map<String, dynamic>> channels;
+
+  const CategoryScreen({super.key, required this.categoryName, required this.channels});
+
+  @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen> {
+  List<String> _favorites = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _favorites = prefs.getStringList('favorite_channels') ?? [];
+    });
+  }
+
+  Future<void> _toggleFavorite(String channelName) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_favorites.contains(channelName)) {
+        _favorites.remove(channelName);
+      } else {
+        _favorites.add(channelName);
+      }
+      prefs.setStringList('favorite_channels', _favorites);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('کەناڵەکانی ${widget.categoryName}', style: const TextStyle(color: Colors.orange)),
+        backgroundColor: const Color(0xFF1A2235),
+        iconTheme: const IconThemeData(color: Colors.orange),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85
+              ),
+              itemCount: widget.channels.length,
+              itemBuilder: (context, index) {
+                var channelData = widget.channels[index];
+                String cName = channelData['name'] ?? '';
+                return GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(channelName: cName, streamUrl: channelData['stream_url'] ?? ''))),
+                  child: ChannelCard(
+                    channelName: cName, 
+                    logoUrl: channelData['logo_url'] ?? '', 
+                    isVIP: channelData['is_vip'] ?? false,
+                    isFavorite: _favorites.contains(cName),
+                    onFavoriteTap: () => _toggleFavorite(cName),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
