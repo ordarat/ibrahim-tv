@@ -129,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), 
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/assets/logo.png', 
+                      'assets/logo.png', // لێرەدا ڕێڕەوەکەمان ڕاستکردەوە
                       width: 32, 
                       height: 32, 
                       fit: BoxFit.cover,
@@ -175,7 +175,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 8,
                             width: _currentSliderIndex == index ? 24 : 8,
                             decoration: BoxDecoration(
-                              // لێرەدا هەموو خاڵەکانمان کرد بە پرتەقاڵی، بەڵام ئەوانەی ئەکتیڤ نین کەمێک کاڵترن
                               color: _currentSliderIndex == index ? Colors.orange : Colors.orange.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(4),
                             ),
