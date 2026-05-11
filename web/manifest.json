@@ -6,7 +6,7 @@
     "background_color": "#1A2235",
     "theme_color": "#FFA500",
     "description": "Kurdish TV Web App",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
