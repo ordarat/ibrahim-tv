@@ -19,10 +19,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _sliderCount = 0;
-  int _currentSliderIndex = 0; 
+  
+  // لێرەدا ValueNotifier مان بەکارهێناوە بۆ ڕێگریکردن لە لەرزینی ئەپەکە
+  final ValueNotifier<int> _currentSliderIndex = ValueNotifier<int>(0); 
+  
   List<String> _favorites = [];
   String _searchQuery = '';
-  Set<String> _registeredAdViews = {}; // بۆ ئەوەی هەر سکریپتێک تەنها یەکجار ڕەجیستەر بکرێت
+  final Set<String> _registeredAdViews = {}; 
 
   @override
   void initState() {
@@ -55,7 +58,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() { _pageController.dispose(); super.dispose(); }
+  void dispose() { 
+    _pageController.dispose(); 
+    _currentSliderIndex.dispose(); // پاککردنەوەی لە ميمۆری
+    super.dispose(); 
+  }
 
   Future<void> _launchURL(String? url) async {
     if (url != null && url.isNotEmpty) {
@@ -66,16 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // دروستکردنی بۆکسی ڕیکلامەکان (وێنە یان سکریپت لە چوارچێوەیەکی دیاریکراودا)
   Widget _buildAdBanner(List<DocumentSnapshot> adsList, int categoryIndex) {
     if (adsList.isEmpty) return const SizedBox();
     
-    // دابەشکردنی ڕیکلامەکان بەپێی کاتیگۆرییەکان (ڕیکلامێکی جیاواز بۆ هەر بەشێک)
     var adDoc = adsList[categoryIndex % adsList.length];
     var adData = adDoc.data() as Map<String, dynamic>;
     
     if (adData['type'] == 'script' && adData['script_code'] != null) {
-      // ڕیکلامی سکریپت دەخرێتە ناو iFrame بۆ ئەوەی دیزاینی ئەپەکە تێک نەدات
       String viewId = 'ad_script_${adDoc.id}';
       if (!_registeredAdViews.contains(viewId)) {
         ui_web.platformViewRegistry.registerViewFactory(viewId, (int viewId) {
@@ -100,7 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } 
     else if (adData['image_url'] != null) {
-      // ڕیکلامی وێنە لەگەڵ لینک
       return GestureDetector(
         onTap: () => _launchURL(adData['click_url']),
         child: Container(
@@ -179,7 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 160.0,
                         child: PageView.builder(
                           controller: _pageController,
-                          onPageChanged: (index) => setState(() => _currentSliderIndex = index),
+                          // لێرەدا فەرمانمان داوە کە تەنها ئەکتیڤبوونی خاڵەکە بگۆڕێت بێ ئەوەی شاشەکە دروستبکاتەوە
+                          onPageChanged: (index) => _currentSliderIndex.value = index,
                           itemCount: sliders.length,
                           itemBuilder: (context, index) {
                             var sliderData = sliders[index].data() as Map<String, dynamic>;
@@ -194,15 +198,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(sliders.length, (index) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300), margin: const EdgeInsets.symmetric(horizontal: 4),
-                            height: 8, width: _currentSliderIndex == index ? 24 : 8,
-                            decoration: BoxDecoration(color: _currentSliderIndex == index ? Colors.orange : Colors.orange.withOpacity(0.3), borderRadius: BorderRadius.circular(4)),
+                      // گوێگر لە خاڵەکان بۆ ئەوەی بە نەرمی بگۆڕێن
+                      ValueListenableBuilder<int>(
+                        valueListenable: _currentSliderIndex,
+                        builder: (context, currentIndex, child) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(sliders.length, (index) {
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 300), margin: const EdgeInsets.symmetric(horizontal: 4),
+                                height: 8, width: currentIndex == index ? 24 : 8,
+                                decoration: BoxDecoration(
+                                  color: currentIndex == index ? Colors.orange : Colors.orange.withOpacity(0.3), 
+                                  borderRadius: BorderRadius.circular(4)
+                                ),
+                              );
+                            }),
                           );
-                        }),
+                        },
                       ),
                     ],
                   );
@@ -211,11 +224,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
             ],
             
-            // وەرگرتنی هەموو ڕیکلامەکان بەیەکجار
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('ads').orderBy('created_at', descending: true).snapshots(),
               builder: (context, adSnapshot) {
-                // لادانی ڕیکلامە کۆنەکە ئەگەر مابێت
                 List<DocumentSnapshot> allAds = [];
                 if(adSnapshot.hasData) {
                   allAds = adSnapshot.data!.docs.where((doc) => doc.id != 'banner').toList();
@@ -273,7 +284,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                             ),
                             const SizedBox(height: 15),
-                            // پیشاندانی ڕیکلام لە نێوان کاتیگۆرییەکان بە ڕێکوپێکی
                             if (_searchQuery.isEmpty && allAds.isNotEmpty) _buildAdBanner(allAds, index),
                             if (_searchQuery.isEmpty) const SizedBox(height: 15),
                           ],
@@ -290,7 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== شاشەی دڵخوازەکان و بەشەکانی تر وەک خۆیانن ====================
   Widget _buildFavoritesContent() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
