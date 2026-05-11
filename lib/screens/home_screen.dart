@@ -129,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 2)), 
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/logo.png', // لێرەدا ڕێڕەوەکەمان ڕاستکردەوە
+                      'assets/logo.png', 
                       width: 32, 
                       height: 32, 
                       fit: BoxFit.cover,
@@ -233,7 +233,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                          // لێرەدا قەبارەکەمان گۆڕی بۆ 0.70 بۆ ئەوەی تێکەڵ نەبن
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.70),
                           itemCount: displayChannels.length,
                           itemBuilder: (context, gridIndex) {
                             var channelData = displayChannels[gridIndex].data() as Map<String, dynamic>;
@@ -296,7 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (favChannels.isEmpty) return Center(child: Text(_searchQuery.isEmpty ? 'هیچ کەناڵێکت نەکردووە بە دڵخواز' : 'هیچ کەناڵێک نەدۆزرایەوە', style: const TextStyle(color: Colors.grey, fontSize: 16)));
 
                 return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
+                  // لێرەشدا قەبارەکەمان گۆڕی بۆ 0.70
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.70),
                   itemCount: favChannels.length,
                   itemBuilder: (context, index) {
                     var channelData = favChannels[index].data() as Map<String, dynamic>;
@@ -384,8 +386,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              // لێرەشدا قەبارەکەمان گۆڕی بۆ 0.70
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85
+                crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.70
               ),
               itemCount: widget.channels.length,
               itemBuilder: (context, index) {
