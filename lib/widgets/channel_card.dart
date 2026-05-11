@@ -20,7 +20,7 @@ class ChannelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E), // ڕەنگێکی تاریک و گونجاو بۆ باکگراوند
+        color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blueAccent.withOpacity(0.2), width: 1),
         boxShadow: [
@@ -33,7 +33,6 @@ class ChannelCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // بەشی وێنەی لۆگۆکە
           Padding(
             padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0, bottom: 28.0),
             child: Center(
@@ -42,7 +41,7 @@ class ChannelCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
                         logoUrl,
-                        fit: BoxFit.contain, // contain وادەکات لۆگۆکە نەبڕدرێت و بەتەواوی دەربکەوێت
+                        fit: BoxFit.contain, 
                         errorBuilder: (context, error, stackTrace) => const Icon(Icons.tv, color: Colors.grey, size: 40),
                       ),
                     )
@@ -54,7 +53,6 @@ class ChannelCard extends StatelessWidget {
             ),
           ),
           
-          // ناوی کەناڵەکە لە خوارەوەی کارتەکە
           Positioned(
             bottom: 0,
             left: 0,
@@ -75,17 +73,16 @@ class ChannelCard extends StatelessWidget {
             ),
           ),
 
-          // دوگمەی دڵخواز (لە لای چەپی سەرەوە)
+          // لێرەدا ڕەنگی دڵەکەمان کرد بە پرتەقاڵی
           Positioned(
             top: 0, 
             left: 0, 
             child: IconButton(
-              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white54, size: 22),
+              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.orange : Colors.white54, size: 22),
               onPressed: onFavoriteTap,
             )
           ),
 
-          // نیشانەی VIP (لە لای ڕاستی سەرەوە)
           if (isVIP)
             Positioned(
               top: 8, 
