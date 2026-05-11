@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/home_screen.dart';
+// لێرەدا فایلەکەی تۆمان بانگکردووەتەوە لەبری هۆم سکرین
+import 'screens/splash_screen.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +14,6 @@ void main() async {
       storageBucket: "ibrahimtv-c0d5d.firebasestorage.app",
       messagingSenderId: "658751407366",
       appId: "1:658751407366:web:5b34e69a4fd4de78330a87",
-      // لێرەدا لینکە تایبەتەکەی داتابەیسەکەی تۆمان داناوە
       databaseURL: "https://ibrahimtv-c0d5d-default-rtdb.europe-west1.firebasedatabase.app", 
     ),
   );
@@ -36,7 +36,8 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
-      home: const HomeScreen(),
+      // لێرەدا فەرمانمان پێکردووە کە یەکەم جار سپلاش سکرینەکەی تۆ بکاتەوە
+      home: const SplashScreen(), 
     );
   }
 }
