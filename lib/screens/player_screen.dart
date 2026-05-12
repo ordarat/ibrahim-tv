@@ -51,15 +51,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
               body { margin: 0; background-color: black; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
               .video-container { width: 100%; height: 100%; position: relative; }
               video { width: 100%; height: 100%; outline: none; }
+              /* دیزاینی نامەی ئاگادارکردنەوەکە ئەگەر کێشەیەک هەبوو */
+              #error-msg { position: absolute; top: 40%; width: 100%; text-align: center; color: #ff4d4d; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; display: none; direction: rtl; padding: 0 20px; box-sizing: border-box; background-color: rgba(0,0,0,0.7); padding-block: 10px;}
             </style>
           </head>
           <body>
             <div data-shaka-player-container class="video-container">
               <video autoplay data-shaka-player id="video"></video>
+              <div id="error-msg"></div>
             </div>
             <script>
               // هێنانی لینکی کەناڵەکە لە فلاتەرەوە
               const manifestUri = '${widget.streamUrl}';
+              const errorDiv = document.getElementById('error-msg');
 
               async function init() {
                 const video = document.getElementById('video');
@@ -79,9 +83,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 try {
                   await player.load(manifestUri);
                   console.log('Video loaded successfully!');
-                  video.play();
+                  
+                  // هەوڵدەدات ئۆتۆماتیکی ڤیدیۆکە کار پێ بکات
+                  let playPromise = video.play();
+                  if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                      console.log("وێبگەڕەکە ڕێگەی نەدا ئۆتۆماتیکی کار بکات چونکە دەنگی هەیە. دەبێت بەکارهێنەر کلیک بکات.");
+                    });
+                  }
                 } catch (e) {
                   console.error('Error loading video', e);
+                  // ئەگەر کێشەیەک هەبوو، لەسەر شاشەکە پیشانی دەدات لەبری ئەوەی تەنها ڕەش بێت
+                  errorDiv.style.display = 'block';
+                  if(manifestUri.startsWith('http://')) {
+                     errorDiv.innerText = '⚠️ وێبگەڕەکە ڕێگە نادات لینکی پارێزراونەکراو (http) کار بکات. تکایە سێرڤەری Cloudflare بەکاربهێنە بۆ ئەم کەناڵە.';
+                  } else {
+                     errorDiv.innerText = '⚠️ کێشە لە پەخشکردنی ئەم کەناڵە هەیە. لەوانەیە لینکەکە کار نەکات یان کێشەی CORS ی هەبێت.';
+                  }
                 }
               }
 
