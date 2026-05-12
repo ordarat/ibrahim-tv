@@ -1,9 +1,9 @@
 import 'dart:math';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
-import 'package:firebase_database/firebase_database.dart'; // پاکێجی داتابەیسە نوێیەکە
+import 'package:firebase_database/firebase_database.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String channelName;
@@ -16,36 +16,98 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  late VideoPlayerController _videoPlayerController;
-  ChewieController? _chewieController;
   late String _userSessionId;
-  late DatabaseReference _viewerRef; // شوێنی سەیڤکردنی ئەم ئامێرە
+  late DatabaseReference _viewerRef; 
   int _viewersCount = 0;
+  late String _viewId;
 
   @override
   void initState() {
     super.initState();
+    // دروستکردنی ئایدییەکی جیاواز بۆ هەر جارێک کە پلەیەرەکە دەکرێتەوە
     _userSessionId = '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
-    _initializePlayer();
-    _setupPresenceSystem(); // کارپێکردنی سیستەمە زیرەکەکە
+    _viewId = 'shaka_player_${DateTime.now().millisecondsSinceEpoch}';
+    
+    _setupShakaPlayer();
+    _setupPresenceSystem(); 
   }
 
-  void _setupPresenceSystem() {
-    // ١. شوێنێک لە داتابەیس دروست دەکات بە ناوی کەناڵەکە و کۆدی ئامێرەکە
-    _viewerRef = FirebaseDatabase.instance.ref('live_viewers/${widget.channelName}/$_userSessionId');
+  void _setupShakaPlayer() {
+    // لێرەدا IFrame دروست دەکەین و کۆدەکانی Shaka Player ی تێدا جێگیر دەکەین
+    ui_web.platformViewRegistry.registerViewFactory(_viewId, (int viewId) {
+      final iframe = html.IFrameElement()
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..style.border = 'none'
+        ..allowFullscreen = true
+        ..srcdoc = """
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <!-- ڕاکێشانی پەرتوکخانەی فەرمی Shaka Player لە کۆمپانیاوە -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.1/shaka-player.ui.min.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.1/controls.min.css">
+            <style>
+              body { margin: 0; background-color: black; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+              .video-container { width: 100%; height: 100%; position: relative; }
+              video { width: 100%; height: 100%; outline: none; }
+            </style>
+          </head>
+          <body>
+            <div data-shaka-player-container class="video-container">
+              <video autoplay data-shaka-player id="video"></video>
+            </div>
+            <script>
+              // هێنانی لینکی کەناڵەکە لە فلاتەرەوە
+              const manifestUri = '${widget.streamUrl}';
 
-    // ٢. فەرمانی ئاڵتونی (onDisconnect): هەرکاتێک تابی وێبگەڕەکە داخرا یان نێت نەما، ڕاستەوخۆ بیسڕەوە!
+              async function init() {
+                const video = document.getElementById('video');
+                const ui = video['ui'];
+                const controls = ui.getControls();
+                const player = controls.getPlayer();
+
+                // ڕێکخستنی مەکینەی Shaka بۆ ئەوەی بەرگەی پچڕانی ئینتەرنێت بگرێت
+                player.configure({
+                  streaming: {
+                    bufferingGoal: 30,
+                    rebufferingGoal: 2,
+                    bufferBehind: 30,
+                  }
+                });
+
+                try {
+                  await player.load(manifestUri);
+                  console.log('Video loaded successfully!');
+                  video.play();
+                } catch (e) {
+                  console.error('Error loading video', e);
+                }
+              }
+
+              // کاتێک دیزاینەکە تەواو بوو، مەکینەکە دەخاتە کار
+              document.addEventListener('shaka-ui-loaded', init);
+            </script>
+          </body>
+          </html>
+        """;
+      return iframe;
+    });
+  }
+
+  Future<void> _setupPresenceSystem() async {
+    // پاککردنەوەی ناوەکە بۆ ئەوەی داتابەیس قبوڵی بکات
+    String safeChannelName = widget.channelName.replaceAll(RegExp(r'[.#\$\[\]]'), '_');
+    
+    _viewerRef = FirebaseDatabase.instance.ref('live_viewers/$safeChannelName/$_userSessionId');
     _viewerRef.onDisconnect().remove();
+    await _viewerRef.set(true);
 
-    // ٣. ئامێرەکە ئێستا لایڤە، بۆیە زیادی بکە
-    _viewerRef.set(true);
-
-    // ٤. بەردەوام گوێ لە ژمارەی کۆی گشتی ئامێرەکان دەگرێت
-    FirebaseDatabase.instance.ref('live_viewers/${widget.channelName}').onValue.listen((event) {
+    FirebaseDatabase.instance.ref('live_viewers/$safeChannelName').onValue.listen((event) {
       if (mounted) {
         setState(() {
           if (event.snapshot.exists) {
-            _viewersCount = event.snapshot.children.length; // ژمارەی ئەوانەی ئێستا سەیری دەکەن
+            _viewersCount = event.snapshot.children.length;
           } else {
             _viewersCount = 0;
           }
@@ -54,37 +116,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
-  Future<void> _initializePlayer() async {
-    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.streamUrl));
-    await _videoPlayerController.initialize();
-    
-    _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
-      autoPlay: true,
-      isLive: true,
-      allowFullScreen: true,
-      deviceOrientationsOnEnterFullScreen: [
-        DeviceOrientation.landscapeRight,
-        DeviceOrientation.landscapeLeft,
-      ],
-      deviceOrientationsAfterFullScreen: [
-        DeviceOrientation.portraitUp,
-      ],
-      aspectRatio: _videoPlayerController.value.aspectRatio > 0 
-          ? _videoPlayerController.value.aspectRatio 
-          : 16 / 9,
-      errorBuilder: (context, errorMessage) {
-        return const Center(child: Text('کێشە لە پەخشکردنی ئەم کەناڵە هەیە', style: TextStyle(color: Colors.white)));
-      },
-    );
-    setState(() {});
-  }
-
   @override
   void dispose() {
-    _viewerRef.remove(); // ئەگەر بە دوگمەی Back گەڕایەوە، لێرەدا دەیسڕێتەوە
-    _videoPlayerController.dispose();
-    _chewieController?.dispose();
+    _viewerRef.remove(); 
     super.dispose();
   }
 
@@ -95,12 +129,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Center(
-              child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
-                  ? Chewie(controller: _chewieController!)
-                  : const CircularProgressIndicator(color: Colors.orange),
+            // پیشاندانی ڤیدیۆکەی Shaka Player
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: HtmlElementView(viewType: _viewId),
             ),
             
+            // دوگمەی گەڕانەوە (چوونە دەرەوە لە کەناڵەکە)
             Positioned(
               top: 20,
               right: 20,
@@ -113,6 +149,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
 
+            // سیستەمی لایڤ و بینەرەکان کە وەک خۆی ماوەتەوە
             Positioned(
               top: 20,
               left: 20,
